@@ -1,0 +1,37 @@
+image: spritecloud/ruby-selenium-runner:2.6
+
+cache:
+  paths:
+    - vendor/ruby
+
+services:
+  - selenium/standalone-chrome:3.8.1
+
+variables:
+  API_KEY: $API_KEY
+  PROFILE_ID: $PROFILE_ID
+  RESULT_OUTPUT: results/latest.json
+  SELENIUM_URL: "http://selenium__standalone-chrome:4444/wd/hub/"
+
+
+stages:
+  - Build and Test
+
+before_script:
+  - bundle install
+
+integration-test:
+  stage: Build and Test
+  script:
+    - bundle exec cucumber -f json -o $RESULT_OUTPUT && true
+    # upload the results to Calliope.
+    - curl -X POST
+      -H "x-api-key:$API_KEY"
+      -H "multipart/form-data"
+      -F "file[]=@$RESULT_OUTPUT"
+      "https://app.calliope.pro/api/v2/profile/$PROFILE_ID/import/cucumber?os=myos&platform=myplatform&build=mybuild"
+
+  artifacts:
+    when: always
+    paths:
+      - results/latest.json # <-- Same as RESULT_OUTPUT
